@@ -6,16 +6,20 @@ import matplotlib.pyplot as plt
 import itertools
 import matplotlib
 
-def sparsify_dynamics(Theta, Xs_dot, thresh, iter):
+def sparsify_dynamics(Theta, Xs_dot, thresh, iter, tol=1e-5):
     # sparsify dynamics
     Xi = np.linalg.lstsq(Theta, Xs_dot, rcond=None)[0]
     for k in range(iter):
+        Xi_old = Xi.copy()
         print('Iteration', k)
         smallinds = np.abs(Xi) < thresh
         Xi[smallinds] = 0
         for ind in range(Xs_dot.shape[1]):
             biginds = (smallinds[:, ind] == False)
             Xi[biginds, ind] = np.linalg.lstsq(Theta[:, biginds], Xs_dot[:, ind], rcond=None)[0]
+        if np.linalg.norm(Xi_old - Xi) < tol:
+            print('Converged')
+            break
 
     return Xi
 
@@ -55,7 +59,7 @@ def constant_term(td):
 
 poly_terms_counts = {}
 
-def generate_polynomial_term(coef_indices):  # todo enforce that average flow is constant
+def generate_polynomial_term(coef_indices):  # todo enforce that average flow is constant?
     def polynomial_term(td):
         product = np.prod([td[:, i] for i in coef_indices], axis=0)
         normalized_product = product / np.linalg.norm(product)
@@ -96,7 +100,7 @@ Theta = np.zeros((m, len(function_dict)))
 for i, func in enumerate(function_dict.values()):
     Theta[:, i] = func(V_red)
 
-iter = 10
+iter = 100
 thresh = 1e-2  # todo higher modes generally need more terms?
 Xi = sparsify_dynamics(Theta, V_red_dot, thresh, iter)
 # plot Xi

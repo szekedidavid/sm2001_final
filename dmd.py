@@ -1,4 +1,4 @@
-import numpy as np  # todo does DMD work on a chaotic system...
+import numpy as np  # todo does DMD work on a chaotic system
 
 from helpers import plot_velocities, read_data
 from functools import partial
@@ -51,7 +51,7 @@ C = np.zeros((r, m - 1), dtype=np.complex128)
 for i, lambd_val in enumerate(lambd):
     C[i] = lambd_val ** np.arange(0, m - 1)
 
-P = ((W_red.conj().T @ W_red) * (C @ C.conj().T)).conj()
+P = ((W_red.conj().T @ W_red) * (C @ C.conj().T)).conj()  # todo unsure if this works with truncation
 p = np.diag(C @ V_red @ S_red @ W_red).conj()
 b = np.linalg.solve(P, p)
 # b = np.linalg.pinv(Phi) @ X_k[:, 0]
