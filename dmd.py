@@ -68,4 +68,4 @@ for i in times:
 
 # print RMS
 rms = np.sqrt(np.mean((X_k - np.real(X_dmd)) ** 2))
-print(f'RMS: {rms}')
+print(f'RMS: {rms}')  # todo sparse DMD?

@@ -40,3 +40,4 @@ for i in range(k):
     print(S[i, i])
     # save plot
     plt.savefig(f'plots/pod_mode_{i}.png')
+# todo there is something *up* with modes 12, 13, 15, 16
