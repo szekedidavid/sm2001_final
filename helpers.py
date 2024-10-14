@@ -17,10 +17,14 @@ def read_data():
 
 
 def plot_velocities(vel, x, y, n, u_min=None, u_max=None, v_min=None, v_max=None):
-    U_vel = vel[:n // 2]
-    V_vel = vel[n // 2:]
-    U_vel_grid = U_vel.reshape(x.shape[0], x.shape[1])
-    V_vel_grid = V_vel.reshape(x.shape[0], x.shape[1])
+    if vel.shape[0] == n:
+        U_vel = vel[:n // 2]
+        V_vel = vel[n // 2:]
+        U_vel_grid = U_vel.reshape(x.shape[0], x.shape[1])
+        V_vel_grid = V_vel.reshape(x.shape[0], x.shape[1])
+    else:
+        U_vel_grid = vel[:, :, 0]
+        V_vel_grid = vel[:, :, 1]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
     c_u = ax1.pcolormesh(x, y, U_vel_grid, cmap='coolwarm', vmin=u_min, vmax=u_max)
