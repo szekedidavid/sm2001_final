@@ -1,7 +1,4 @@
 import os
-
-import keras.src.saving
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
@@ -31,7 +28,7 @@ UV_norm[:, :, :, 1] = UV[:, :, :, 1] - np.mean(UV[:, :, :, 1])
 UV_train, UV_val = train_test_split(UV_norm, test_size=0.1, random_state=0)
 
 @keras.src.saving.register_keras_serializable()
-class CNNAutoencoder(models.Model):  # todo use hierarchical?
+class CNNAutoencoder(models.Model):  # todo use hierarchical? batch normalization?
     def __init__(self, latent_dim, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.latent_dim = latent_dim

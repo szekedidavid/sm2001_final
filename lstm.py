@@ -4,8 +4,15 @@ from helpers import plot_velocities
 from functools import partial
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
+import keras
 from helpers import read_data
+import gc
+
+# noinspection PyUnresolvedReferences
+from tensorflow.keras import models, layers, regularizers, backend
+
+backend.clear_session()             # Clear the Keras/TensorFlow session
+gc.collect()                        # Run the garbage collection manually
 
 X, n, m, UV, x, y = read_data()
 
@@ -25,10 +32,11 @@ S_red = S[:r, :r]
 V_red = V[:, :r]
 Vt_red = V_red.T  # each column is a state
 
-# noinspection PyUnresolvedReferences
-from tensorflow.keras import models, layers
+# get lower limit for reconstruction RMS
+X_svd = U_red @ S_red @ V_red.T
+rms = np.sqrt(np.mean((X_norm - X_svd) ** 2))
 
-sequence_length = 10
+sequence_length = 100
 
 def preprocess(X, sequence_length):
     data_nr = X.shape[1] // (sequence_length + 1) # number of sequences
@@ -39,20 +47,21 @@ def preprocess(X, sequence_length):
         Y_seq[i] = X[:, (i + 1) * sequence_length].T
     return X_seq, Y_seq
 
-X_seq, Y_seq = preprocess(X_norm, sequence_length)
-X_train, X_val, Y_train, Y_val = train_test_split(X_seq, Y_seq, test_size=0.1, random_state=0)
+X_seq, Y_seq = preprocess(Vt_red, sequence_length)
+X_train, X_val, Y_train, Y_val = train_test_split(X_seq, Y_seq, test_size=0.2, random_state=0, shuffle=False)
 
+@keras.saving.register_keras_serializable()
 class LSTM(models.Model):  # todo mess around with regularizers
     def __init__(self, sequence_length, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.sequence_length = sequence_length
-        self.lstm = layers.LSTM(128)  # todo stack layers?
-        self.dropout = layers.Dropout(0.2)
-        self.dense = layers.Dense(n, activation='linear')
+        self.lstm1 = layers.LSTM(128, kernel_regularizer=regularizers.l2(0.02), return_sequences=True) # todo stack layers?
+        self.lstm2 = layers.LSTM(64, kernel_regularizer=regularizers.l2(0.02))
+        self.dense = layers.Dense(r, activation='linear')
 
     def call(self, inputs):
-        x = self.lstm(inputs)
-        x = self.dropout(x)+9
+        x = self.lstm1(inputs)
+        x = self.lstm2(x)
         return self.dense(x)
 
 lstm = LSTM(sequence_length)
@@ -62,16 +71,37 @@ lstm.fit(X_train, Y_train, validation_data=(X_val, Y_val), epochs=1000)
 # save
 lstm.save('lstm.keras')
 
-# predict flow from first 10 data points
-X_init = X_norm[:, :sequence_length].T
-X_pred = np.zeros((X_norm.shape[1], n))
-X_pred[:sequence_length] = X_init
-for i in range(sequence_length, X_norm.shape[1] - sequence_length):
-    print('Predicting', i)
-    X_pred[i] = lstm.predict(X_pred[i - sequence_length: i].reshape(1, sequence_length, n))
+# load
+# lstm = models.load_model('lstm.keras')
 
-# plot MSE
-plt.plot(np.mean((X_norm - X_pred.T) ** 2, axis=1))
+# predict flow from first 10 data points
+# X_init = X_norm[:, :sequence_length].T
+# X_pred = np.zeros((X_norm.shape[1], n))
+# X_pred[:sequence_length] = X_init
+# for i in range(sequence_length, X_norm.shape[1] - sequence_length):
+#     print('Predicting', i)
+#     X_pred[i] = lstm.predict(X_pred[i - sequence_length: i].reshape(1, sequence_length, n))
+# X_pred = X_pred.T
+
+V_init = Vt_red[:, :sequence_length].T
+V_pred = np.zeros((m, r))
+V_pred[:sequence_length] = V_init
+for i in range(sequence_length, Vt_red.shape[1] - sequence_length):
+    print('Predicting', i)
+    V_pred[i] = lstm.predict(V_pred[i - sequence_length: i].reshape(1, sequence_length, r))
+X_pred = U_red @ S_red @ V_pred.T
+
+# plot RMS
+mse = np.sqrt(np.mean((X_norm - X_pred) ** 2, axis=0))
+plt.plot(mse)
 plt.xlabel('Index')
-plt.ylabel('MSE')
+plt.ylabel('RMS')
 plt.show()
+
+# total RMS
+print(np.mean(mse))
+
+times = 0, 300, 600, 900
+for t in times:
+    plot_velocities(X_norm[:, t], x, y, n)
+    plot_velocities(X_pred[:, t], x, y, n)  # todo how to ensure that it generalizes?

@@ -28,7 +28,7 @@ plt.ylabel('Value')
 plt.show()
 
 
-r = 900 # too small gives a result that decays, too large gives a result that explodes
+r = 10 # too small gives a result that decays, too large gives a result that explodes
 U_red = U[:, :r]
 S_red = np.diag(S[:r])
 V_red = Vt.T[:, :r]
@@ -49,16 +49,17 @@ plt.show()
 
 C = np.zeros((r, m - 1), dtype=np.complex128)
 for i, lambd_val in enumerate(lambd):
-    C[i] = lambd_val ** np.arange(0, m - 1)
+    C[i] = lambd_val # ** np.arange(0, m - 1)
 
-P = ((W_red.conj().T @ W_red) * (C @ C.conj().T)).conj()  # todo unsure if this works with truncation
-p = np.diag(C @ V_red @ S_red @ W_red).conj()
-b = np.linalg.solve(P, p)
-# b = np.linalg.pinv(Phi) @ X_k[:, 0]
+# P = ((W_red.conj().T @ W_red) * (C @ C.conj().T)).conj()  # todo unsure if this works with truncation
+# p = np.diag(C @ V_red @ S_red @ W_red).conj()
+# b = np.linalg.solve(P, p)
+b = np.linalg.pinv(Phi) @ X_k[:, 0]
 
 
 # reconstruct UV using DMD modes
-X_dmd = Phi @ np.diag(b) @ C
+# X_dmd = Phi @ np.diag(b) @ C
+X_dmd = Phi @ np.diag(lambd) @ b
 
 # plot reconstructed UV
 times = 0, 5, 50, 100, 300, 500, 900
@@ -67,5 +68,6 @@ for i in times:
     plot_vel(np.real(X_dmd[:, i]), u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
 
 # print RMS
-rms = np.sqrt(np.mean((X_k - np.real(X_dmd)) ** 2))
-print(f'RMS: {rms}')  # todo sparse DMD?
+# rms = np.sqrt(np.mean((X_k - np.real(X_dmd)) ** 2))
+norm = np.linalg.norm(X_k - np.real(X_dmd))
+print(f'RMS: {norm}')  # todo sparse DMD?
