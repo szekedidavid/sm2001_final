@@ -1,25 +1,17 @@
-import numpy as np  # todo does DMD work on a chaotic system
+import numpy as np
 
 from helpers import plot_velocities, read_data
 from functools import partial
 import matplotlib.pyplot as plt
 
-X, n, m, UV, x, y = read_data()
-
-u_min = np.min(UV[:, :, :, 0])
-u_max = np.max(UV[:, :, :, 0])
-v_min = np.min(UV[:, :, :, 1])
-v_max = np.max(UV[:, :, :, 1])
-
+X, X_norm, n, m, x, y, UV, u_min, u_max, v_min, v_max = read_data()
 plot_vel = partial(plot_velocities, x=x, y=y, n=n)
-X_norm = np.zeros_like(X)
-X_norm[:n // 2] = X[:n // 2] - np.mean(X[:n // 2])
-X_norm[n // 2:] = X[n // 2:] - np.mean(X[n // 2:])
 
 # get dmd modes
 X_k = X_norm[:, :-1]
 X_kp1 = X_norm[:, 1:]
 U, S, Vt = np.linalg.svd(X_k, full_matrices=False)
+V = Vt.T
 
 # log plot singular values
 plt.scatter(range(S.shape[0]), np.log(S))
@@ -27,8 +19,8 @@ plt.xlabel('Index')
 plt.ylabel('Value')
 plt.show()
 
-
-r = 10 # too small gives a result that decays, too large gives a result that explodes
+r_max = X_k.shape[1]
+r = r_max # too small gives a result that decays, too large gives a result that explodes
 U_red = U[:, :r]
 S_red = np.diag(S[:r])
 V_red = Vt.T[:, :r]
@@ -49,25 +41,27 @@ plt.show()
 
 C = np.zeros((r, m - 1), dtype=np.complex128)
 for i, lambd_val in enumerate(lambd):
-    C[i] = lambd_val # ** np.arange(0, m - 1)
+    C[i] = lambd_val ** np.arange(0, m - 1)
 
-# P = ((W_red.conj().T @ W_red) * (C @ C.conj().T)).conj()  # todo unsure if this works with truncation
-# p = np.diag(C @ V_red @ S_red @ W_red).conj()
-# b = np.linalg.solve(P, p)
-b = np.linalg.pinv(Phi) @ X_k[:, 0]
+P = (W_red.conj().T @ W_red) * (C @ C.conj().T).conj()
+p = np.diag(C @ V_red @ S_red.conj().T @ W_red).conj()
+b = np.linalg.solve(P, p)
+# b = np.linalg.pinv(Phi) @ X_k[:, 0]
 
+# get one more column in C
+C_full = np.zeros((r, m), dtype=np.complex128)
+C_full[:, :-1] = C
+C_full[:, -1] = lambd ** (m - 1)
 
 # reconstruct UV using DMD modes
-# X_dmd = Phi @ np.diag(b) @ C
-X_dmd = Phi @ np.diag(lambd) @ b
+X_dmd = Phi @ np.diag(b) @ C_full
 
 # plot reconstructed UV
-times = 0, 5, 50, 100, 300, 500, 900
+times = 0, 300, 600, 900
 for i in times:
     plot_vel(X_norm[:, i], u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
     plot_vel(np.real(X_dmd[:, i]), u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
 
-# print RMS
-# rms = np.sqrt(np.mean((X_k - np.real(X_dmd)) ** 2))
-norm = np.linalg.norm(X_k - np.real(X_dmd))
-print(f'RMS: {norm}')  # todo sparse DMD?
+# print MSE
+mse = np.mean((X_norm - np.real(X_dmd)) ** 2)
+print(f'MSE: {mse}')

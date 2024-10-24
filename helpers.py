@@ -12,8 +12,15 @@ def read_data():
     for i in range(UV.shape[0]):
         X[:n // 2, i] = UV[i, :, :, 0].ravel()
         X[n // 2:, i] = UV[i, :, :, 1].ravel()
+    X_norm = np.zeros_like(X)
+    X_norm[:n // 2] = X[:n // 2] - np.mean(X[:n // 2])
+    X_norm[n // 2:] = X[n // 2:] - np.mean(X[n // 2:])
+    u_min = np.min(UV[:, :, :, 0])
+    u_max = np.max(UV[:, :, :, 0])
+    v_min = np.min(UV[:, :, :, 1])
+    v_max = np.max(UV[:, :, :, 1])
 
-    return X, n, m, UV, x, y
+    return X, X_norm, n, m, x, y, UV, u_min, u_max, v_min, v_max
 
 
 def plot_velocities(vel, x, y, n, u_min=None, u_max=None, v_min=None, v_max=None):
