@@ -20,7 +20,8 @@ plt.ylabel('Value')
 plt.show()
 
 r_max = X_k.shape[1]
-r = r_max # too small gives a result that decays, too large gives a result that explodes
+r = 999 # r_max
+
 U_red = U[:, :r]
 S_red = np.diag(S[:r])
 V_red = Vt.T[:, :r]
@@ -37,16 +38,23 @@ theta = np.linspace(0, 2 * np.pi, 100)
 plt.plot(np.cos(theta), np.sin(theta), color='black')
 plt.xlim(-1.1, 1.1)
 plt.ylim(-1.1, 1.1)
+plt.xlabel('Re $\lambda$', fontsize=18)
+plt.ylabel('Im $\lambda$', fontsize=18)
+plt.xticks([-1.00, -0.50, 0.00, 0.50, 1.00], fontsize=14)
+plt.yticks([-1.00, -0.50, 0.00, 0.50, 1.00], fontsize=14)
+plt.tight_layout()
+# set aspect ratio to be equal
+plt.gca().set_aspect('equal', adjustable='box')
 plt.show()
 
 C = np.zeros((r, m - 1), dtype=np.complex128)
 for i, lambd_val in enumerate(lambd):
     C[i] = lambd_val ** np.arange(0, m - 1)
 
-P = (W_red.conj().T @ W_red) * (C @ C.conj().T).conj()
-p = np.diag(C @ V_red @ S_red.conj().T @ W_red).conj()
-b = np.linalg.solve(P, p)
-# b = np.linalg.pinv(Phi) @ X_k[:, 0]
+# P = (W_red.conj().T @ W_red) * (C @ C.conj().T).conj()
+# p = np.diag(C @ V_red @ S_red.conj().T @ W_red).conj()
+# b = np.linalg.solve(P, p)
+b = np.linalg.pinv(Phi) @ X_k[:, 0]
 
 # get one more column in C
 C_full = np.zeros((r, m), dtype=np.complex128)
@@ -56,11 +64,46 @@ C_full[:, -1] = lambd ** (m - 1)
 # reconstruct UV using DMD modes
 X_dmd = Phi @ np.diag(b) @ C_full
 
+# get energy from each DMD mode
+energy_list = []
+
+for i in range(r):
+    x = np.outer(Phi[:, i], C_full[i]) * b[i]
+    energy = np.linalg.norm(x) ** 2
+    energy_list.append(energy)
+
+energy_list = np.array(energy_list)
+
+sorted_indices = np.argsort(energy_list)[::-1]
+sorted_energy_list = energy_list[sorted_indices]
+
+Phi_sorted = Phi[:, sorted_indices]
+
+# plot first 20 DMD modes
+for i in range(20):
+    plot_vel(np.real(Phi_sorted[:, i]))
+    plt.savefig(f'./plots/dmd_mode_{i}_real.png')
+    plot_vel(np.imag(Phi_sorted[:, i]))
+    plt.savefig(f'./plots/dmd_mode_{i}_imag.png')
+    plt.show()
+
+
+
 # plot reconstructed UV
-times = 0, 300, 600, 900
-for i in times:
-    plot_vel(X_norm[:, i], u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
-    plot_vel(np.real(X_dmd[:, i]), u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
+# times = 0, 300, 600, 900
+# for i in times:
+#     plot_vel(X_norm[:, i], u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
+#     plt.show()
+#     plot_vel(np.real(X_dmd[:, i]), u_min=u_min, u_max=u_max, v_min=v_min, v_max=v_max)
+#     plt.show()
+
+# plot MSE with time
+mse = np.mean((X_norm - np.real(X_dmd)) ** 2, axis=0)
+plt.plot(mse)
+plt.xlabel('$t$')
+plt.ylabel('MSE')
+plt.tight_layout()
+plt.show()
 
 # print MSE
 mse = np.mean((X_norm - np.real(X_dmd)) ** 2)
