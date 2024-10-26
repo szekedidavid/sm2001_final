@@ -131,16 +131,120 @@ for i in range(sequence_length, Vt_test.shape[1]):
 X_pred = U_red @ S_red @ V_pred.T
 X_test = X_norm[:, -Vt_test.shape[1]:]
 
+X_pred[:n // 2] = X_pred[:n // 2] + np.mean(X[:n // 2])
+X_pred[n // 2:] = X_pred[n // 2:] + np.mean(X[n // 2:])
+# Mean velocity (u and v) over x and time
+U_pred = X_pred[:n // 2]
+V_pred = X_pred[n // 2:]
+U_vel_grid_pred = U_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
+V_vel_grid_pred = V_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
+U_mean_pred = np.mean(U_vel_grid_pred, axis=(0, 2))  # Mean of u over time and x
+V_mean_pred = np.mean(V_vel_grid_pred, axis=(0, 2))  # Mean of v over time and x
+u_fluct_pred = U_vel_grid_pred - U_mean_pred[np.newaxis, :, np.newaxis]  # Fluctuations in u
+v_fluct_pred = V_vel_grid_pred - V_mean_pred[np.newaxis, :, np.newaxis]  # Fluctuations in v
+U_var_pred = np.mean(u_fluct_pred ** 2, axis=(0, 2))  # Variance of u
+V_var_pred = np.mean(v_fluct_pred ** 2, axis=(0, 2))  # Variance of v
+reynolds_stress_pred = np.mean(u_fluct_pred * v_fluct_pred, axis=(0, 2))  # Reynolds stress
+
+X_test[:n // 2] = X_test[:n // 2] + np.mean(X[:n // 2])
+X_test[n // 2:] = X_test[n // 2:] + np.mean(X[n // 2:])
+# Mean velocity (u and v) over x and time
+U = X_test[:n // 2]
+V = X_test[n // 2:]
+U_vel_grid = U.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
+V_vel_grid = V.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
+U_mean = np.mean(U_vel_grid, axis=(0, 2))  # Mean of u over time and x
+V_mean = np.mean(V_vel_grid, axis=(0, 2))  # Mean of v over time and x
+u_fluct = U_vel_grid - U_mean[np.newaxis, :, np.newaxis]  # Fluctuations in u
+v_fluct = V_vel_grid - V_mean[np.newaxis, :, np.newaxis]  # Fluctuations in v
+U_var = np.mean(u_fluct ** 2, axis=(0, 2))  # Variance of u
+V_var = np.mean(v_fluct ** 2, axis=(0, 2))  # Variance of v
+reynolds_stress = np.mean(u_fluct * v_fluct, axis=(0, 2))  # Reynolds stress
+
+
+# get percentage error
+error = np.sqrt(np.mean(((U_mean - U_mean_pred) / U_mean) ** 2)) * 100
+print(f"RMS Relative Error (U_mean): {error:.2f}%")
+
+# RMS relative error for U_var
+error = np.sqrt(np.mean(((U_var - U_var_pred) / U_var) ** 2)) * 100
+print(f"RMS Relative Error (U_var): {error:.2f}%")
+
+# RMS relative error for reynolds_stress
+error = np.sqrt(np.mean(((reynolds_stress - reynolds_stress_pred) / reynolds_stress) ** 2)) * 100
+print(f"RMS Relative Error (Reynolds Stress): {error:.2f}%")
+
+# RMS relative error for V_var
+error = np.sqrt(np.mean(((V_var - V_var_pred) / V_var) ** 2)) * 100
+print(f"RMS Relative Error (V_var): {error:.2f}%")
+
+
+
+# Plot U_mean (Mean of u) vs y
+plt.plot(U_mean_pred, y[0], label='Predicted')
+plt.plot(U_mean, y[0], label='Real')
+plt.ylim(y[0][0], y[0][-1])
+plt.xlim(0, 1.2)
+plt.xlabel('$\overline{u}$', fontsize=18)
+plt.ylabel('$y$', fontsize=18)
+plt.xticks(fontsize=12)  # Increase tick label font size
+plt.yticks(fontsize=12)  # Increase tick label font size
+plt.tight_layout()
+plt.legend()
+plt.show()
+
+# Plot U_var (Variance of u) vs y
+plt.plot(U_var_pred, y[0], label='Predicted')
+plt.plot(U_var, y[0], label='Real')
+plt.ylim(y[0][0], y[0][-1])
+plt.xlim(0, 0.11)
+plt.xlabel(r"$\overline{u'^2}$", fontsize=18)
+plt.ylabel('$y$', fontsize=18)
+plt.xticks(fontsize=12)  # Increase tick label font size
+plt.yticks(fontsize=12)
+plt.tight_layout()
+plt.legend()
+plt.show()
+
+# Plot V_var (Variance of v) vs y
+plt.plot(V_var_pred, y[0], label='Predicted')
+plt.plot(V_var, y[0], label='Real')
+plt.ylim(y[0][0], y[0][-1])
+plt.xlim(0, 0.14)
+plt.xlabel(r"$\overline{v'^2}$", fontsize=18)
+plt.ylabel('$y$', fontsize=18)
+plt.xticks(fontsize=12)  # Increase tick label font size
+plt.yticks(fontsize=12)
+plt.tight_layout()
+plt.legend()
+plt.show()
+
+
+
+# Plot Reynolds stress (u'v') vs y
+plt.plot(reynolds_stress_pred, y[0], label='Predicted')
+plt.plot(reynolds_stress, y[0], label='Real')
+plt.ylim(y[0][0], y[0][-1])
+# plt.xlim(-0.011, 0.011)
+plt.axvline(0, color='black', linestyle='--')
+plt.xlabel(r"$\overline{u'v'}$", fontsize=18)
+plt.ylabel('$y$', fontsize=18)
+plt.xticks(fontsize=12)  # Increase tick label font size
+plt.yticks(fontsize=12)
+plt.tight_layout()
+plt.legend()
+plt.show()
+
 # plot real and predicted time series
-for i in range(r):
-    times = np.arange(800, 1000)
-    plt.plot(times, V_pred.T[i], label='Predicted')
-    plt.plot(times, Vt_test[i], label='Real')
-    plt.axvline(850, color='black', linestyle='--')
-    plt.xlabel('$t$')
-    plt.ylabel(f'$V_{{{i}}}$')
-    plt.legend()
-    plt.show()
+# for i in range(r):
+#     times = np.arange(800, 1000)
+#     plt.plot(times, V_pred.T[i], label='Predicted')
+#     plt.plot(times, Vt_test[i], label='Real')
+#     plt.axvline(850, color='black', linestyle='--')
+#     plt.xlabel('$t$')
+#     plt.ylabel(f'$V_{{{i}}}$')
+#     plt.legend()
+#     plt.show()
 
 # plot mse over time
 # mse_time = np.mean((X_test - X_pred) ** 2, axis=0)

@@ -55,6 +55,18 @@ plt.yticks(fontsize=12)
 plt.tight_layout()
 plt.show()
 
+# plot V_var
+V_var = np.mean(v_fluct ** 2, axis=(0, 1))  # Variance of v
+plt.plot(V_var, y[0])
+plt.ylim(y[0][0], y[0][-1])
+plt.xlim(0, 0.14)
+plt.xlabel(r"$\overline{v'^2}$", fontsize=18)
+plt.ylabel('$y$', fontsize=18)
+plt.xticks(fontsize=12)  # Increase tick label font size
+plt.yticks(fontsize=12)
+plt.tight_layout()
+plt.show()
+
 # Mean v over time and x (so V_mean will be a function of y only)
 V_mean = np.mean(UV[:, :, :, 1], axis=(0, 2))  # Mean of v over time and x, shape (148,)
 
@@ -100,6 +112,7 @@ plt.ylabel(r"$\overline{u'v'}$", fontsize=18)
 plt.xlabel('x', fontsize=18)
 plt.xticks(fontsize=18)  # Increase tick label font size
 plt.yticks(fontsize=18)
+
 
 plt.tight_layout()
 plt.show()
