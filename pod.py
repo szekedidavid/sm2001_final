@@ -31,5 +31,3 @@ for i in range(k):
     plt.tight_layout()
     plt.savefig(f'plots/pod_mode_{i}_v.png')
     plt.close()
-
-# todo there is something *up* with modes 12, 13, 15, 16
