@@ -26,11 +26,10 @@ UV_train, UV_temp = train_test_split(UV, test_size=0.3, random_state=0)
 UV_test, UV_val = train_test_split(UV_temp, test_size=0.33, random_state=0)
 
 # subtract average from U and V
-mean = np.mean(UV_train)
-std = np.std(UV_train)
-UV_train_norm = (UV_train - mean) / std
-UV_val_norm = (UV_val - mean) / std
-UV_test_norm = (UV_test - mean) / std
+scaler = StandardScaler()
+UV_train_norm = scaler.fit_transform(UV_train.reshape(-1, 2)).reshape(UV_train.shape)
+UV_val_norm = scaler.transform(UV_val.reshape(-1, 2)).reshape(UV_val.shape)
+UV_test_norm = scaler.transform(UV_test.reshape(-1, 2)).reshape(UV_test.shape)
 
 @keras.src.saving.register_keras_serializable()
 class CNNAutoencoder(models.Model):
@@ -88,10 +87,10 @@ cnn_ae.fit(UV_train_norm, UV_train_norm,  validation_data=(UV_val_norm, UV_val_n
 cnn_ae.save(f'cnn_ae_{latent_dim}.keras')
 cnn_ae.encoder.summary()
 cnn_ae.decoder.summary()
-# cnn_ae = models.load_model(f'cnn_ae_{latent_dim}.keras', custom_objects={'CNNAutoencoder': CNNAutoencoder})
+# cnn_ae = models.load_model(f'cnn_ae_d{latent_dim}.keras', custom_objects={'CNNAutoencoder': CNNAutoencoder})
 
 # print MSE
 UV_pred_norm = cnn_ae.predict(UV_test_norm)
-UV_pred = UV_pred_norm.reshape(-1, 2) * std + mean
+UV_pred = scaler.inverse_transform(UV_pred_norm.reshape(-1, 2)).reshape(UV_pred_norm.shape)
 mse = np.mean((UV_test - UV_pred) ** 2)
 print(f'MSE: {mse}')
