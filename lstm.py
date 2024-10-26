@@ -26,7 +26,7 @@ V = svd[2].T
 
 r = 50
 epochs = 1000
-batch_size = 32
+batch_size = 10
 patience = 50
 sequence_length = 10
 alpha = 0
@@ -49,13 +49,14 @@ X_seq, Y_seq = preprocess(Vt_red, sequence_length)
 X_train, X_temp, Y_train, Y_temp = train_test_split(X_seq, Y_seq, test_size=0.3, shuffle=False)
 X_test, X_val, Y_test, Y_val = train_test_split(X_temp, Y_temp, test_size=0.33, shuffle=False)
 
-scaler = StandardScaler()
-X_train_norm = scaler.fit_transform(X_train.reshape(-1, r)).reshape(X_train.shape)
-X_val_norm = scaler.transform(X_val.reshape(-1, r)).reshape(X_val.shape)
-X_test_norm = scaler.transform(X_test.reshape(-1, r)).reshape(X_test.shape)
-Y_train_norm = scaler.transform(Y_train)
-Y_val_norm = scaler.transform(Y_val)
-Y_test_norm = scaler.transform(Y_test)
+mean = np.mean(X_train)
+std = np.std(X_train)
+X_train_norm = (X_train - mean) / std
+X_val_norm = (X_val - mean) / std
+X_test_norm = (X_test - mean) / std
+Y_train_norm = (Y_train - mean) / std
+Y_val_norm = (Y_val - mean) / std
+Y_test_norm = (Y_test - mean) / std
 
 @keras.saving.register_keras_serializable()
 class LSTM(models.Model):
@@ -95,8 +96,8 @@ V_pred = np.zeros((m, r))
 V_pred[:sequence_length] = V_init
 for i in range(sequence_length, Vt_red.shape[1] - sequence_length):
     print('Predicting', i)
-    V_pred_norm = scaler.transform(V_pred[i - sequence_length: i])
-    V_pred[i] = scaler.inverse_transform(lstm.predict(V_pred_norm.reshape(1, sequence_length, r))).reshape(r)
+    V_pred_norm = (V_pred[i - sequence_length: i] - mean) / std
+    V_pred[i] = lstm.predict(V_pred_norm[np.newaxis, :, :]) * std + mean
 X_pred = U_red @ S_red @ V_pred.T
 
 # plot mse over time
