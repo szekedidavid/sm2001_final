@@ -18,11 +18,11 @@ gc.collect()
 X, X_norm, n, m, x, y, UV, u_min, u_max, v_min, v_max = read_data()
 plot_vel = partial(plot_velocities, x=x, y=y, n=n)
 
-r = 50
+r = 100
 epochs = 2000
 batch_size = 32
 patience = 100
-sequence_length = 50
+sequence_length = 10
 
 # get pod modes
 svd = np.linalg.svd(X_norm, full_matrices=False)
@@ -34,15 +34,6 @@ U_red = U[:, :r]
 S_red = S[:r, :r]
 V_red = V[:, :r]
 Vt_red = V_red.T
-
-# def preprocess(X, sequence_length):
-#     data_nr = X.shape[1] // (sequence_length + 1) # number of sequences
-#     X_seq = np.zeros((data_nr, sequence_length, X.shape[0]))
-#     Y_seq = np.zeros((data_nr, X.shape[0]))
-#     for i in range(data_nr):
-#         X_seq[i] = X[:, i * sequence_length: (i + 1) * sequence_length].T
-#         Y_seq[i] = X[:, (i + 1) * sequence_length].T
-#     return X_seq, Y_seq
 
 V_temp, V_test = train_test_split(V_red, test_size=0.2, shuffle=False)
 Vt_temp = V_temp.T
@@ -104,6 +95,7 @@ loss = lstm.evaluate(X_val, Y_val)
 print(f'Validation loss: {loss}')
 
 
+# simulate the full dataset
 # V_init = Vt_red[:, :sequence_length].T
 # V_pred = np.zeros((m, r))
 # V_pred[:sequence_length] = V_init
@@ -130,6 +122,61 @@ for i in range(sequence_length, Vt_test.shape[1]):
     V_pred[i] = lstm.predict(V_pred[i - sequence_length: i][np.newaxis, :, :])
 X_pred = U_red @ S_red @ V_pred.T
 X_test = X_norm[:, -Vt_test.shape[1]:]
+
+mse_time = np.mean((X_test - X_pred) ** 2, axis=0)
+times = np.arange(800, 1000)
+plt.plot(times, mse_time)
+plt.xlabel('$t$')
+plt.ylabel('MSE')
+plt.xlim(800, 1000)
+plt.axvline(810, color='black', linestyle='--')
+plt.show()
+# print mse
+mse = np.mean(mse_time[sequence_length:])
+print(f'MSE: {mse}')
+
+# plot real and predicted time series
+# for i in range(15):
+#     times = np.arange(800, 1000)
+#     plt.plot(times, V_pred.T[i], label='Predicted')
+#     plt.plot(times, Vt_test[i], label='Real')
+#     plt.axvline(810, color='black', linestyle='--')
+#     plt.xlim(800, 1000)
+#     plt.xlabel('$t$')
+#     plt.ylabel(f'$V_{{{i}}}$')
+#     plt.legend()
+#     plt.show()
+
+# Define A4 dimensions in inches (A4 size in cm: 21 x 29.7 cm)
+
+# Assuming V_pred and Vt_test are defined with appropriate dimensions
+times = np.arange(800, 1000)
+
+# Create a figure with A4 dimensions and a 5x3 grid of subplots
+fig, axes = plt.subplots(5, 3, figsize=(10, 11), sharex=True)
+fig.subplots_adjust(hspace=0.5, wspace=0.4)  # Adjust spacing between subplots
+
+for i in range(15):
+    row = i // 3
+    col = i % 3
+    ax = axes[row, col]
+
+    # Plot predicted and real data on the respective subplot
+    ax.plot(times, V_pred.T[i], label='Predicted')
+    ax.plot(times, Vt_test[i], label='Real')
+
+    # Add a vertical line and labels
+    ax.axvline(810, color='black', linestyle='--')
+    ax.set_xlim(800, 1000)
+    ax.set_xlabel('$t$')
+    ax.set_ylabel(f'$V_{{{i}}}$')
+
+    # Show legend only in the first subplot
+    if i == 0:
+        ax.legend()
+
+plt.tight_layout()
+plt.show()
 
 X_pred[:n // 2] = X_pred[:n // 2] + np.mean(X[:n // 2])
 X_pred[n // 2:] = X_pred[n // 2:] + np.mean(X[n // 2:])
@@ -229,32 +276,9 @@ plt.ylim(y[0][0], y[0][-1])
 plt.axvline(0, color='black', linestyle='--')
 plt.xlabel(r"$\overline{u'v'}$", fontsize=18)
 plt.ylabel('$y$', fontsize=18)
-plt.xticks(fontsize=12)  # Increase tick label font size
+plt.xticks([-0.01, -0.005, 0, 0.005, 0.01], fontsize=12)  # Increase tick label font size
 plt.yticks(fontsize=12)
 plt.tight_layout()
 plt.legend()
 plt.show()
 
-# plot real and predicted time series
-# for i in range(r):
-#     times = np.arange(800, 1000)
-#     plt.plot(times, V_pred.T[i], label='Predicted')
-#     plt.plot(times, Vt_test[i], label='Real')
-#     plt.axvline(850, color='black', linestyle='--')
-#     plt.xlabel('$t$')
-#     plt.ylabel(f'$V_{{{i}}}$')
-#     plt.legend()
-#     plt.show()
-
-# plot mse over time
-# mse_time = np.mean((X_test - X_pred) ** 2, axis=0)
-# times = np.arange(800, 1000)
-# plt.plot(times, mse_time)
-# plt.xlabel('$t$')
-# plt.ylabel('MSE')
-# plt.xlim(800, 1000)
-# plt.axvline(850, color='black', linestyle='--')
-# plt.show()
-# # print mse
-# mse = np.mean(mse_time)
-# print(f'MSE: {mse}')

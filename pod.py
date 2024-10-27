@@ -31,3 +31,6 @@ for i in range(k):
     plt.tight_layout()
     plt.savefig(f'plots/pod_mode_{i}_v.png')
     plt.close()
+    # plot time evolution
+    plt.plot(V[:, i])
+    plt.show()
