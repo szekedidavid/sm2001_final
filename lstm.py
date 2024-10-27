@@ -80,11 +80,11 @@ class LSTM(models.Model):
 
 lstm = LSTM(sequence_length, r)
 early_stopping = callbacks.EarlyStopping(monitor='val_loss', patience=patience, restore_best_weights=True)
-#
-# lstm.compile(optimizer='adam', loss='mse')
-# lstm.fit(X_train, Y_train, validation_data=(X_val, Y_val), epochs=epochs, batch_size=batch_size, callbacks=[early_stopping])
-# lstm.save(f'lstm_l{sequence_length}_r{r}.keras')
-lstm = models.load_model(f'lstm_l{sequence_length}_r{r}.keras', custom_objects={'LSTM': LSTM})
+
+lstm.compile(optimizer='adam', loss='mse')
+lstm.fit(X_train, Y_train, validation_data=(X_val, Y_val), epochs=epochs, batch_size=batch_size, callbacks=[early_stopping])
+lstm.save(f'lstm_l{sequence_length}_r{r}.keras')
+# lstm = models.load_model(f'lstm_l{sequence_length}_r{r}.keras', custom_objects={'LSTM': LSTM})
 
 # get training loss
 loss = lstm.evaluate(X_train, Y_train)
@@ -93,7 +93,6 @@ print(f'Training loss: {loss}')
 # get validation loss
 loss = lstm.evaluate(X_val, Y_val)
 print(f'Validation loss: {loss}')
-
 
 # simulate the full dataset
 # V_init = Vt_red[:, :sequence_length].T
@@ -104,7 +103,6 @@ print(f'Validation loss: {loss}')
 #     V_pred_norm = V_pred[i - sequence_length: i]
 #     V_pred[i] = lstm.predict(V_pred_norm[np.newaxis, :, :])
 # X_pred = U_red @ S_red @ V_pred.T
-#
 # mse_time = np.mean((X_norm - X_pred) ** 2, axis=0)
 # times = np.arange(X_temp.shape[0], X_temp.shape[0] + Vt_test.shape[1])
 # plt.plot(mse_time)
@@ -122,7 +120,6 @@ for i in range(sequence_length, Vt_test.shape[1]):
     V_pred[i] = lstm.predict(V_pred[i - sequence_length: i][np.newaxis, :, :])
 X_pred = U_red @ S_red @ V_pred.T
 X_test = X_norm[:, -Vt_test.shape[1]:]
-
 mse_time = np.mean((X_test - X_pred) ** 2, axis=0)
 times = np.arange(800, 1000)
 plt.plot(times, mse_time)
@@ -131,31 +128,13 @@ plt.ylabel('MSE')
 plt.xlim(800, 1000)
 plt.axvline(810, color='black', linestyle='--')
 plt.show()
-# print mse
+
 mse = np.mean(mse_time[sequence_length:])
 print(f'MSE: {mse}')
 
-# plot real and predicted time series
-# for i in range(15):
-#     times = np.arange(800, 1000)
-#     plt.plot(times, V_pred.T[i], label='Predicted')
-#     plt.plot(times, Vt_test[i], label='Real')
-#     plt.axvline(810, color='black', linestyle='--')
-#     plt.xlim(800, 1000)
-#     plt.xlabel('$t$')
-#     plt.ylabel(f'$V_{{{i}}}$')
-#     plt.legend()
-#     plt.show()
-
-# Define A4 dimensions in inches (A4 size in cm: 21 x 29.7 cm)
-
-# Assuming V_pred and Vt_test are defined with appropriate dimensions
 times = np.arange(800, 1000)
-
-# Create a figure with A4 dimensions and a 5x3 grid of subplots
 fig, axes = plt.subplots(5, 3, figsize=(10, 11), sharex=True)
-fig.subplots_adjust(hspace=0.5, wspace=0.4)  # Adjust spacing between subplots
-
+fig.subplots_adjust(hspace=0.5, wspace=0.4)
 for i in range(15):
     row = i // 3
     col = i % 3
@@ -165,51 +144,47 @@ for i in range(15):
     ax.plot(times, V_pred.T[i], label='Predicted')
     ax.plot(times, Vt_test[i], label='Real')
 
-    # Add a vertical line and labels
     ax.axvline(810, color='black', linestyle='--')
     ax.set_xlim(800, 1000)
     ax.set_xlabel('$t$')
     ax.set_ylabel(f'$V_{{{i}}}$')
 
-    # Show legend only in the first subplot
     if i == 0:
         ax.legend()
-
 plt.tight_layout()
 plt.show()
 
+# obtain turbulence statistics
 X_pred[:n // 2] = X_pred[:n // 2] + np.mean(X[:n // 2])
 X_pred[n // 2:] = X_pred[n // 2:] + np.mean(X[n // 2:])
-# Mean velocity (u and v) over x and time
 U_pred = X_pred[:n // 2]
 V_pred = X_pred[n // 2:]
 U_vel_grid_pred = U_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
 V_vel_grid_pred = V_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-U_mean_pred = np.mean(U_vel_grid_pred, axis=(0, 2))  # Mean of u over time and x
-V_mean_pred = np.mean(V_vel_grid_pred, axis=(0, 2))  # Mean of v over time and x
-u_fluct_pred = U_vel_grid_pred - U_mean_pred[np.newaxis, :, np.newaxis]  # Fluctuations in u
-v_fluct_pred = V_vel_grid_pred - V_mean_pred[np.newaxis, :, np.newaxis]  # Fluctuations in v
-U_var_pred = np.mean(u_fluct_pred ** 2, axis=(0, 2))  # Variance of u
-V_var_pred = np.mean(v_fluct_pred ** 2, axis=(0, 2))  # Variance of v
-reynolds_stress_pred = np.mean(u_fluct_pred * v_fluct_pred, axis=(0, 2))  # Reynolds stress
+U_mean_pred = np.mean(U_vel_grid_pred, axis=(0, 2))
+V_mean_pred = np.mean(V_vel_grid_pred, axis=(0, 2))
+u_fluct_pred = U_vel_grid_pred - U_mean_pred[np.newaxis, :, np.newaxis]
+v_fluct_pred = V_vel_grid_pred - V_mean_pred[np.newaxis, :, np.newaxis]
+U_var_pred = np.mean(u_fluct_pred ** 2, axis=(0, 2))
+V_var_pred = np.mean(v_fluct_pred ** 2, axis=(0, 2))
+reynolds_stress_pred = np.mean(u_fluct_pred * v_fluct_pred, axis=(0, 2))
 
 X_test[:n // 2] = X_test[:n // 2] + np.mean(X[:n // 2])
 X_test[n // 2:] = X_test[n // 2:] + np.mean(X[n // 2:])
-# Mean velocity (u and v) over x and time
 U = X_test[:n // 2]
 V = X_test[n // 2:]
 U_vel_grid = U.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
 V_vel_grid = V.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-U_mean = np.mean(U_vel_grid, axis=(0, 2))  # Mean of u over time and x
-V_mean = np.mean(V_vel_grid, axis=(0, 2))  # Mean of v over time and x
-u_fluct = U_vel_grid - U_mean[np.newaxis, :, np.newaxis]  # Fluctuations in u
-v_fluct = V_vel_grid - V_mean[np.newaxis, :, np.newaxis]  # Fluctuations in v
-U_var = np.mean(u_fluct ** 2, axis=(0, 2))  # Variance of u
-V_var = np.mean(v_fluct ** 2, axis=(0, 2))  # Variance of v
-reynolds_stress = np.mean(u_fluct * v_fluct, axis=(0, 2))  # Reynolds stress
+U_mean = np.mean(U_vel_grid, axis=(0, 2))
+V_mean = np.mean(V_vel_grid, axis=(0, 2))
+u_fluct = U_vel_grid - U_mean[np.newaxis, :, np.newaxis]
+v_fluct = V_vel_grid - V_mean[np.newaxis, :, np.newaxis]
+U_var = np.mean(u_fluct ** 2, axis=(0, 2))
+V_var = np.mean(v_fluct ** 2, axis=(0, 2))
+reynolds_stress = np.mean(u_fluct * v_fluct, axis=(0, 2))
 
 
-# get percentage error
+# RMS relative error for U_mean
 error = np.sqrt(np.mean(((U_mean - U_mean_pred) / U_mean) ** 2)) * 100
 print(f"RMS Relative Error (U_mean): {error:.2f}%")
 
@@ -224,61 +199,3 @@ print(f"RMS Relative Error (Reynolds Stress): {error:.2f}%")
 # RMS relative error for V_var
 error = np.sqrt(np.mean(((V_var - V_var_pred) / V_var) ** 2)) * 100
 print(f"RMS Relative Error (V_var): {error:.2f}%")
-
-
-
-# Plot U_mean (Mean of u) vs y
-plt.plot(U_mean_pred, y[0], label='Predicted')
-plt.plot(U_mean, y[0], label='Real')
-plt.ylim(y[0][0], y[0][-1])
-plt.xlim(0, 1.2)
-plt.xlabel('$\overline{u}$', fontsize=18)
-plt.ylabel('$y$', fontsize=18)
-plt.xticks(fontsize=12)  # Increase tick label font size
-plt.yticks(fontsize=12)  # Increase tick label font size
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-# Plot U_var (Variance of u) vs y
-plt.plot(U_var_pred, y[0], label='Predicted')
-plt.plot(U_var, y[0], label='Real')
-plt.ylim(y[0][0], y[0][-1])
-plt.xlim(0, 0.11)
-plt.xlabel(r"$\overline{u'^2}$", fontsize=18)
-plt.ylabel('$y$', fontsize=18)
-plt.xticks(fontsize=12)  # Increase tick label font size
-plt.yticks(fontsize=12)
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-# Plot V_var (Variance of v) vs y
-plt.plot(V_var_pred, y[0], label='Predicted')
-plt.plot(V_var, y[0], label='Real')
-plt.ylim(y[0][0], y[0][-1])
-plt.xlim(0, 0.14)
-plt.xlabel(r"$\overline{v'^2}$", fontsize=18)
-plt.ylabel('$y$', fontsize=18)
-plt.xticks(fontsize=12)  # Increase tick label font size
-plt.yticks(fontsize=12)
-plt.tight_layout()
-plt.legend()
-plt.show()
-
-
-
-# Plot Reynolds stress (u'v') vs y
-plt.plot(reynolds_stress_pred, y[0], label='Predicted')
-plt.plot(reynolds_stress, y[0], label='Real')
-plt.ylim(y[0][0], y[0][-1])
-# plt.xlim(-0.011, 0.011)
-plt.axvline(0, color='black', linestyle='--')
-plt.xlabel(r"$\overline{u'v'}$", fontsize=18)
-plt.ylabel('$y$', fontsize=18)
-plt.xticks([-0.01, -0.005, 0, 0.005, 0.01], fontsize=12)  # Increase tick label font size
-plt.yticks(fontsize=12)
-plt.tight_layout()
-plt.legend()
-plt.show()
-

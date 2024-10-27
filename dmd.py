@@ -19,7 +19,7 @@ plt.xlabel('Index')
 plt.ylabel('Value')
 plt.show()
 
-r_max = X_k.shape[1]
+r_max = 900 # X_k.shape[1]
 r = r_max
 
 U_red = U[:, :r]
@@ -79,7 +79,11 @@ for i in range(k):
     plt.savefig(f'./plots/dmd_mode_{i}_real.png')
     plot_vel(np.imag(Phi_sorted[:, i]))
     plt.savefig(f'./plots/dmd_mode_{i}_imag.png')
+
+    # print eigenvalue
+    print(f'Eigenvalue {i}: {lambd[sorted_indices[i]]}')
     plt.show()
+
 
 # plot reconstructed UV
 # times = 0, 300, 600, 900

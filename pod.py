@@ -20,7 +20,7 @@ plt.ylabel(r'log $\sigma$', fontsize=14)
 plt.show()
 
 # plot first k POD modes
-k = 50
+k = 15
 for i in range(k):
     plot_vel(U[:, i])
     plt.savefig(f'plots/pod_mode_{i}.png')

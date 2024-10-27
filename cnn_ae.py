@@ -94,3 +94,13 @@ UV_pred_norm = cnn_ae.predict(UV_test_norm)
 UV_pred = scaler.inverse_transform(UV_pred_norm.reshape(-1, 2)).reshape(UV_pred_norm.shape)
 mse = np.mean((UV_test - UV_pred) ** 2)
 print(f'MSE: {mse}')
+
+# plot all modes
+for i in range(latent_dim):
+    mode = np.zeros((1, latent_dim))
+    mode[0, i] = 1
+    output = cnn_ae.decoder(mode).numpy()[0]
+    plot_velocities(output, x, y, n)
+
+    # save
+    plt.savefig(f'cnn_ae_mode_{i}.png')
