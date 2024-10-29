@@ -84,7 +84,7 @@ early_stopping = callbacks.EarlyStopping(monitor='val_loss', patience=patience, 
 lstm.compile(optimizer='adam', loss='mse')
 lstm.fit(X_train, Y_train, validation_data=(X_val, Y_val), epochs=epochs, batch_size=batch_size, callbacks=[early_stopping])
 lstm.save(f'lstm_l{sequence_length}_r{r}.keras')
-# lstm = models.load_model(f'lstm_l{sequence_length}_r{r}.keras', custom_objects={'LSTM': LSTM})
+# lstm = models.load_model(f'lstm_models/lstm_l{sequence_length}_r{r}.keras', custom_objects={'LSTM': LSTM})
 
 # get training loss
 loss = lstm.evaluate(X_train, Y_train)
@@ -113,89 +113,18 @@ print(f'Validation loss: {loss}')
 # plt.show()
 
 # simulate the test data
-V_pred = np.zeros((Vt_test.shape[1], r))
-V_pred[:sequence_length] = Vt_test[:, :sequence_length].T
-for i in range(sequence_length, Vt_test.shape[1]):
-    print('Predicting', i)
-    V_pred[i] = lstm.predict(V_pred[i - sequence_length: i][np.newaxis, :, :])
-X_pred = U_red @ S_red @ V_pred.T
-X_test = X_norm[:, -Vt_test.shape[1]:]
-mse_time = np.mean((X_test - X_pred) ** 2, axis=0)
-times = np.arange(800, 1000)
-plt.plot(times, mse_time)
-plt.xlabel('$t$')
-plt.ylabel('MSE')
-plt.xlim(800, 1000)
-plt.axvline(810, color='black', linestyle='--')
-plt.show()
-
-mse = np.mean(mse_time[sequence_length:])
-print(f'MSE: {mse}')
-
-times = np.arange(800, 1000)
-fig, axes = plt.subplots(5, 3, figsize=(10, 11), sharex=True)
-fig.subplots_adjust(hspace=0.5, wspace=0.4)
-for i in range(15):
-    row = i // 3
-    col = i % 3
-    ax = axes[row, col]
-
-    # Plot predicted and real data on the respective subplot
-    ax.plot(times, V_pred.T[i], label='Predicted')
-    ax.plot(times, Vt_test[i], label='Real')
-
-    ax.axvline(810, color='black', linestyle='--')
-    ax.set_xlim(800, 1000)
-    ax.set_xlabel('$t$')
-    ax.set_ylabel(f'$V_{{{i}}}$')
-
-    if i == 0:
-        ax.legend()
-plt.tight_layout()
-plt.show()
-
-# obtain turbulence statistics
-X_pred[:n // 2] = X_pred[:n // 2] + np.mean(X[:n // 2])
-X_pred[n // 2:] = X_pred[n // 2:] + np.mean(X[n // 2:])
-U_pred = X_pred[:n // 2]
-V_pred = X_pred[n // 2:]
-U_vel_grid_pred = U_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-V_vel_grid_pred = V_pred.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-U_mean_pred = np.mean(U_vel_grid_pred, axis=(0, 2))
-V_mean_pred = np.mean(V_vel_grid_pred, axis=(0, 2))
-u_fluct_pred = U_vel_grid_pred - U_mean_pred[np.newaxis, :, np.newaxis]
-v_fluct_pred = V_vel_grid_pred - V_mean_pred[np.newaxis, :, np.newaxis]
-U_var_pred = np.mean(u_fluct_pred ** 2, axis=(0, 2))
-V_var_pred = np.mean(v_fluct_pred ** 2, axis=(0, 2))
-reynolds_stress_pred = np.mean(u_fluct_pred * v_fluct_pred, axis=(0, 2))
-
-X_test[:n // 2] = X_test[:n // 2] + np.mean(X[:n // 2])
-X_test[n // 2:] = X_test[n // 2:] + np.mean(X[n // 2:])
-U = X_test[:n // 2]
-V = X_test[n // 2:]
-U_vel_grid = U.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-V_vel_grid = V.reshape(x.shape[0], x.shape[1], Vt_test.shape[1])
-U_mean = np.mean(U_vel_grid, axis=(0, 2))
-V_mean = np.mean(V_vel_grid, axis=(0, 2))
-u_fluct = U_vel_grid - U_mean[np.newaxis, :, np.newaxis]
-v_fluct = V_vel_grid - V_mean[np.newaxis, :, np.newaxis]
-U_var = np.mean(u_fluct ** 2, axis=(0, 2))
-V_var = np.mean(v_fluct ** 2, axis=(0, 2))
-reynolds_stress = np.mean(u_fluct * v_fluct, axis=(0, 2))
-
-
-# RMS relative error for U_mean
-error = np.sqrt(np.mean(((U_mean - U_mean_pred) / U_mean) ** 2)) * 100
-print(f"RMS Relative Error (U_mean): {error:.2f}%")
-
-# RMS relative error for U_var
-error = np.sqrt(np.mean(((U_var - U_var_pred) / U_var) ** 2)) * 100
-print(f"RMS Relative Error (U_var): {error:.2f}%")
-
-# RMS relative error for reynolds_stress
-error = np.sqrt(np.mean(((reynolds_stress - reynolds_stress_pred) / reynolds_stress) ** 2)) * 100
-print(f"RMS Relative Error (Reynolds Stress): {error:.2f}%")
-
-# RMS relative error for V_var
-error = np.sqrt(np.mean(((V_var - V_var_pred) / V_var) ** 2)) * 100
-print(f"RMS Relative Error (V_var): {error:.2f}%")
+# V_pred = np.zeros((Vt_test.shape[1], r))
+# V_pred[:sequence_length] = Vt_test[:, :sequence_length].T
+# for i in range(sequence_length, Vt_test.shape[1]):
+#     print('Predicting', i)
+#     V_pred[i] = lstm.predict(V_pred[i - sequence_length: i][np.newaxis, :, :])
+# X_pred = U_red @ S_red @ V_pred.T
+# X_test = X_norm[:, -Vt_test.shape[1]:]
+# mse_time = np.mean((X_test - X_pred) ** 2, axis=0)
+# times = np.arange(800, 1000)
+# plt.plot(times, mse_time)
+# plt.xlabel('$t$')
+# plt.ylabel('MSE')
+# plt.xlim(800, 1000)
+# plt.axvline(810, color='black', linestyle='--')
+# plt.show()

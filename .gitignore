@@ -1,4 +1,5 @@
 /data/
 /plots/
-/stuff/optimal_SVHT_coef.m
-/stuff/Practical_session_5_commented.ipynb
+/lstm_models/
+/cnn_ae_models/
+/sindy_data/
